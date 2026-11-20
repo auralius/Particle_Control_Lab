@@ -1,4 +1,4 @@
-# Particle Control Lab — Student Edition (v1.6)
+# Particle Control Lab (v1.6)
 
 URL: https://auralius.github.io/Particle_Control_Lab/
 
@@ -13,12 +13,6 @@ python3 -m http.server 8000
 ```
 
 Then open `http://localhost:8000/`. Do **not** open `index.html` using `file://`, because Web Workers may be blocked by the browser. Stop the server using Ctrl+C.
-
-<<<<<<< HEAD
-If you have tested the instructor edition on `localhost:8000`, the student edition uses a different browser localStorage key. It won't load your previous instructor controller. **v1.6 uses a fresh student storage key** to show the new `init()` / `controller()` starter, while leaving code saved by older versions untouched. To reset your current student code, select **Reset editor to starter**. If cached files are shown, use **Ctrl+Shift+R**.
-=======
-If you have tested the instructor edition on `localhost:8000`, the student edition uses a different browser localStorage key. It won't load your previous instructor controller. The current v1.5.2 release uses the browser storage key `particlelab.student.controller.v1_5_2` so its starter can appear on a fresh visit; older saved text is not erased. To reset your current student code, select **Reset editor to starter**. If cached files are shown, use **Ctrl+Shift+R**.
->>>>>>> fb7f7e9d30d73ade8810aab232b0f53619da4710
 
 ## The plant
 
