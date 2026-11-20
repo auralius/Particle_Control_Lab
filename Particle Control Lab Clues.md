@@ -25,7 +25,7 @@ The names `state`, `params`, and `memory` are globally accessible to your helper
 **Question:** How far is the particle from the target?
 
 1. Compute the **position error** on each axis: target position minus actual position.
-2. Choose a proportional gain, \(K_p\).
+2. Choose a proportional gain, $K_p$.
 3. Multiply the error on each axis by that gain.
 4. Have `P()` return the two force components, named **`fx`** and **`fy`**.
 
@@ -39,7 +39,7 @@ $$
 F_{P,x}[k]=K_p e_x[k], \qquad F_{P,y}[k]=K_p e_y[k]
 $$
 
-**Think about:** What happens if you double \(K_p\)? Can a P-only controller oscillate even when the target is stationary?
+**Think about:** What happens if you double $K_p$? Can a P-only controller oscillate even when the target is stationary?
 
 ## Clue 2 — Derivative term, D()
 
@@ -51,7 +51,7 @@ For this exercise, compute the **classical derivative of error**, rather than us
 2. Retrieve the *previous* errors from `memory`.
 3. **First-call clue:** If previous error is `undefined`, initialize it to the **current error**. Why does this make the first derivative zero?
 4. Approximate the derivative using a **backward difference** and the current sampling period **`params.dt`**.
-5. Multiply each derivative by \(K_d\).
+5. Multiply each derivative by $K_d$.
 6. **After** calculating the derivatives, save the current errors in `memory` for the next call.
 7. Return the derivative force components as `fx` and `fy`.
 
@@ -66,7 +66,7 @@ $$
 F_{D,x}[k]=K_d\dot e_x[k],\qquad F_{D,y}[k]=K_d\dot e_y[k]
 $$
 
-where \(T_s=\texttt{params.dt}\).
+where $T_s=\texttt{params.dt}$.
 
 **Think about:** Why must the previous error be saved **after**, not before, calculating the difference? What happens to the derivative term if the target jumps suddenly (*derivative kick*)?
 
@@ -78,7 +78,7 @@ where \(T_s=\texttt{params.dt}\).
 2. Reserve **two persistent accumulators** in `memory`: one for the x-axis and one for the y-axis.
 3. **First-call clue:** When an accumulator is `undefined`, initialize it to **zero**.
 4. At each call, add **current error × `params.dt`** to each accumulator.
-5. Multiply the accumulated errors by an integral gain, \(K_i\).
+5. Multiply the accumulated errors by an integral gain, $K_i$.
 6. Return the integral force components as `fx` and `fy`.
 
 Using rectangular integration:
@@ -127,11 +127,11 @@ $$
 
 ## Suggested experiments
 
-1. **P only:** Vary \(K_p\). Observe overshoot and oscillation.
-2. **PD:** Keep \(K_p\) fixed and vary \(K_d\). Observe damping and settling.
+1. **P only:** Vary $K_p$. Observe overshoot and oscillation.
+2. **PD:** Keep $K_p$ fixed and vary $K_d$. Observe damping and settling.
 3. **PI:** Add integral action. Try the disturbance-rejection challenge.
 4. **PID:** Combine all three terms. Compare settling, overshoot, and disturbance rejection.
-5. **Sampling period:** Test \(T_s = 0.01\), \(0.02\), and \(0.05\) s. Keep gains fixed; compare the responses.
+5. **Sampling period:** Test $T_s = 0.01$, $0.02$, and $0.05$ s. Keep gains fixed; compare the responses.
 6. **Optional challenge:** Devise a way to prevent integral windup during force saturation.
 
 **Deliverables:** Your own JavaScript controller implementation, a screenshot or exported CSV of one or more responses, and a short explanation of how your gains and sampling period affect performance.
