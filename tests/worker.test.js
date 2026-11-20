@@ -176,3 +176,156 @@ test('v1.5.2 editor starter compiles and applies saturated P force', () => {
   assert.equal(w.messages.at(-1).state.fx,14);
   assert.equal(w.messages.at(-1).state.fy,14);
 });
+
+test('v1.6 calls optional init once before first controller sample', () => {
+  const w=makeWorker();
+  w.dispatch({kind:'load',mode:'step',config:{m:2,b:0,fmax:40,dt:.02},source:`
+    function initialForce() { return memory.force + params.m + state.target.x - 2.5; }
+    function init() {
+      memory.force = 3;
+      memory.initialX = state.x;
+      memory.initialTime = state.t;
+    }
+    function controller() {
+      const force = initialForce();
+      memory.force += 1;
+      return { fx: force, fy: memory.initialX + 3.2 + memory.initialTime };
+    }
+  `});
+  assert.equal(w.messages.at(-1).kind,'ready');
+  w.dispatch({kind:'step'});
+  assert.equal(w.messages.at(-1).state.fx,5);
+  assert.equal(w.messages.at(-1).state.fy,0);
+  w.dispatch({kind:'step'});
+  assert.equal(w.messages.at(-1).state.fx,6);
+});
+
+test('v1.6 pause / resume and consecutive Steps never rerun init', () => {
+  const w=makeWorker();
+  w.dispatch({kind:'load',mode:'step',config:{b:0},source:`
+    function init() { memory.n = 0; }
+    function controller() { memory.n += 1; return { fx: memory.n, fy: 0 }; }
+  `});
+  w.dispatch({kind:'step'}); assert.equal(w.messages.at(-1).state.fx,1);
+  w.dispatch({kind:'pause'});
+  w.dispatch({kind:'start'});
+  w.dispatch({kind:'pause'});
+  w.dispatch({kind:'step'}); assert.equal(w.messages.at(-1).state.fx,2);
+  w.dispatch({kind:'step'}); assert.equal(w.messages.at(-1).state.fx,3);
+});
+
+test('v1.6 reset reruns init with an empty memory and a fresh helper scope', () => {
+  const w=makeWorker();
+  w.dispatch({kind:'load',mode:'step',config:{b:0},source:`
+    let hidden = 0;
+    function init() { hidden++; memory.n = hidden; }
+    function controller() { return { fx: memory.n, fy: 0 }; }
+  `});
+  w.dispatch({kind:'step'}); assert.equal(w.messages.at(-1).state.fx,1);
+  w.dispatch({kind:'reset'}); assert.equal(w.messages.at(-1).kind,'frame');
+  w.dispatch({kind:'step'}); assert.equal(w.messages.at(-1).state.fx,1);
+  w.dispatch({kind:'reset'});
+  w.dispatch({kind:'step'}); assert.equal(w.messages.at(-1).state.fx,1);
+});
+
+test('v1.6 each offline challenge calls init once with its own starting state', () => {
+  const w=makeWorker();
+  w.dispatch({kind:'load',mode:'step',config:{dt:.1},source:`
+    function init() {
+      self.postMessage({kind:'student-init', x:state.x, t:state.t, targetX:state.target.x});
+      memory.base = state.x;
+      memory.counter = 0;
+    }
+    function controller() {
+      memory.counter++;
+      return { fx: memory.counter === 1 ? 1 : 0, fy: 0 };
+    }
+  `});
+  assert.equal(w.messages.filter(v=>v.kind==='student-init').length,1);
+  w.dispatch({kind:'test'});
+  assert.equal(w.messages.at(-1).kind,'test-results');
+  const initMessages=w.messages.filter(v=>v.kind==='student-init');
+  assert.equal(initMessages.length,5); // 1 live + 4 separate challenges
+  assert(initMessages.every(v=>v.t===0));
+  assert.equal(initMessages[3].x,-2.8); // circle scenario starts elsewhere
+  assert.equal(initMessages[1].x,-3.2);
+  const original=w.messages.at(-1).results;
+  w.dispatch({kind:'test'});
+  assert.equal(w.messages.at(-1).kind,'test-results');
+  assert.equal(JSON.stringify(w.messages.at(-1).results),JSON.stringify(original));
+  assert.equal(w.messages.filter(v=>v.kind==='student-init').length,9);
+  // Testing must not reset the live controller's memory.
+  w.dispatch({kind:'step'}); assert.equal(w.messages.at(-1).state.fx,1);
+  w.dispatch({kind:'step'}); assert.equal(w.messages.at(-1).state.fx,0);
+});
+
+test('v1.6 allows old three-argument callback signature for init and controller', () => {
+  const w=makeWorker();
+  w.dispatch({kind:'load',mode:'step',config:{m:2,dt:.05},source:`
+    function init(state, params, memory) { memory.n = params.m + state.target.x; }
+    function controller(state, params, memory) {
+      return { fx: memory.n, fy: params.dt * 20 };
+    }
+  `});
+  w.dispatch({kind:'step'});
+  assert.equal(w.messages.at(-1).state.fx,4.5);
+  assert.equal(w.messages.at(-1).state.fy,1);
+});
+
+test('v1.6 reports init failures instead of silently running controller', () => {
+  const w=makeWorker();
+  w.dispatch({kind:'load',mode:'step',config:{},source:`
+    function init() { throw new Error('bad initialization'); }
+    function controller() { return {fx:0,fy:0}; }
+  `});
+  assert.equal(w.messages.at(-1).kind,'error');
+  assert.match(w.messages.at(-1).message,/bad initialization/);
+  assert(!w.messages.some(v=>v.kind==='ready'));
+});
+
+test('v1.6 starter includes both standard callbacks and a reusable P helper', () => {
+  const app=fs.readFileSync(path.join(root,'app.js'),'utf8');
+  const match=app.match(/const starterCode = `([\s\S]*?)`;/);
+  assert(match);
+  assert.match(match[1],/function init\(\)/);
+  assert.match(match[1],/function P\(\)/);
+  assert.match(match[1],/function controller\(\)/);
+  const w=makeWorker();
+  w.dispatch({kind:'load',source:match[1],mode:'step',config:{}});
+  assert.equal(w.messages.at(-1).kind,'ready');
+  w.dispatch({kind:'step'});
+  assert.equal(w.messages.at(-1).state.fx,14);
+  assert.equal(w.messages.at(-1).state.fy,14);
+});
+
+test('v1.6 starting after the 30-second endpoint initializes a fresh run', () => {
+  const w=makeWorker();
+  w.dispatch({kind:'load',mode:'step',config:{dt:0.1,b:0},source:`
+    function init() { memory.start = 6; }
+    function controller() { return { fx: memory.start, fy: 0 }; }
+  `});
+  // Advance the 30 s run exactly 300 steps; final step sends done.
+  for (let i=0; i<300; i++) w.dispatch({kind:'step'});
+  assert.equal(w.messages.at(-1).kind,'done');
+  w.dispatch({kind:'start'});
+  assert.equal(w.messages.at(-1).kind,'running');
+  const resets=w.messages.filter(v=>v.kind==='frame'&&v.reason==='reset');
+  assert.equal(resets.length,2);
+  assert.equal(resets.at(-1).state.t,0);
+  w.dispatch({kind:'pause'});
+  w.dispatch({kind:'step'});
+  assert.equal(w.messages.at(-1).state.fx,6);
+  assert(Math.abs(w.messages.at(-1).state.t-.1)<1e-10);
+});
+
+test('v1.6 failed initialization does not leave a partially loaded controller active', () => {
+  const w=makeWorker();
+  w.dispatch({kind:'load',mode:'step',config:{},source:`
+    function init() { throw new Error('failed initialization'); }
+    function controller() { return {fx:7, fy:0}; }
+  `});
+  assert.equal(w.messages.at(-1).kind,'error');
+  w.dispatch({kind:'step'});
+  assert.equal(w.messages.at(-1).kind,'error');
+  assert.match(w.messages.at(-1).message,/Load your controller first/);
+});

@@ -4,7 +4,7 @@ const P = self.ParticlePhysics;
 let config = P.sanitizeConfig(P.DEFAULTS);
 let mode = 'step';
 let userSource = '';
-let userController = null;
+let userRuntime = null;
 let memory = {};
 let state = P.initial(mode);
 let manualTarget = null;
@@ -25,30 +25,41 @@ function snapshot(reason) {
     metrics: serializeMetrics(), reason: reason || '' });
 }
 function stop() { if (timer !== null) clearInterval(timer); timer = null; }
+// A separate snapshot is supplied to student code; mutating it never changes
+// the simulator's physical state. The current target is available even in init().
+function studentState(s, scenario, customTarget) {
+  return { t: s.t, x: s.x, y: s.y, vx: s.vx, vy: s.vy,
+    target: { ...P.targetAt(s.t, scenario, customTarget) } };
+}
 function reset() {
   stop(); playbackBudget = 0;
-  memory = {}; state = P.initial(mode); metrics = freshMetrics(); snapshot('reset');
+  memory = {}; state = P.initial(mode); metrics = freshMetrics();
+  userRuntime = null; // failed initialization must not leave a runnable controller
+  // Fresh script scope and empty memory for EACH experiment. This prevents
+  // module-level custom variables from leaking across independent runs.
+  const runtime = compile(userSource);
+  runtime.initialize(studentState(state, mode, manualTarget), { ...config }, memory);
+  userRuntime = runtime;
+  snapshot('reset');
 }
 function compile(src) {
-  // Student code runs in a dedicated Web Worker, not in the page's UI context.
-  // This is not a security boundary for untrusted scripts.
-  // Each compiled controller gets its own script-level bindings. They are
-  // accessible by name in EVERY student helper function and are refreshed
-  // just before each controller call. They are not the simulator's own state.
-  // Keeping them inside this closure also isolates challenge-test runs.
+  // Both standard callbacks and all custom helpers share script-level
+  // state, params and memory bindings; the page itself cannot access them.
+  // Running student code in a Worker is NOT a security boundary.
   const factory = new Function('"use strict";\n'
     + 'let state, params, memory;\n'
     + src
     + '\nif (typeof controller !== "function") return null;\n'
-    + 'return function invokeController(currentState, currentParams, currentMemory) {\n'
-    + '  state = currentState; params = currentParams; memory = currentMemory;\n'
-    // Always supply arguments too, so v1.4 controller(state, params, memory)
-    // works without edits while v1.5 controller() may omit them entirely.
-    + '  return controller(currentState, currentParams, currentMemory);\n'
+    + 'const studentInit = typeof init === "function" ? init : null;\n'
+    + 'function bindContext(s, p, m) { state=s; params=p; memory=m; }\n'
+    + 'return {\n'
+    + ' initialize(s,p,m) { bindContext(s,p,m); if (studentInit) studentInit(s,p,m); },\n'
+    // Always pass arguments as well, preserving legacy callbacks.
+    + ' invoke(s,p,m) { bindContext(s,p,m); return controller(s,p,m); }\n'
     + '};');
-  const fn = factory();
-  if (typeof fn !== 'function') throw new Error('Define function controller() (or controller(state, params, memory)).');
-  return fn;
+  const runtime = factory();
+  if (!runtime) throw new Error('Define function controller() (or controller(state, params, memory)).');
+  return runtime;
 }
 function validateForces(output) {
   if (!output || typeof output !== 'object') throw new Error('Controller must return { fx, fy }.');
@@ -59,11 +70,9 @@ function validateForces(output) {
   return { fx: output.fx, fy: output.fy };
 }
 function oneStep() {
-  const target = P.targetAt(state.t, mode, manualTarget);
-  const input = { t: state.t, x: state.x, y: state.y, vx: state.vx, vy: state.vy,
-    target: Object.assign({}, target) };
-  // A copy prevents student code from changing the simulator's own parameters.
-  const output = validateForces(userController(input, { ...config }, memory));
+  // Copies keep simulator-owned state and config separate from student code.
+  const output = validateForces(userRuntime.invoke(
+    studentState(state, mode, manualTarget), { ...config }, memory));
   const result = P.step(state, output, config, mode, manualTarget);
   state = result.state;
   if (state.t >= 2) {
@@ -93,15 +102,15 @@ function playbackTick() {
   }
 }
 function testCase(testMode, seconds, threshold) {
-  const controller = compile(userSource); // resets any closure variables per case
+  const runtime = compile(userSource); // separate script scope for this challenge
   const localMemory = {};
   let s = P.initial(testMode);
+  runtime.initialize(studentState(s, testMode, null), { ...config }, localMemory);
   let count = 0, totalSquared = 0, forceSquared = 0, lastError = 0;
   const steps = Math.round(seconds / config.dt);
   for (let k = 0; k < steps; k++) {
-    const target = P.targetAt(s.t, testMode, null);
-    const request = validateForces(controller({ t: s.t, x: s.x, y: s.y, vx: s.vx, vy: s.vy,
-      target: { ...target } }, { ...config }, localMemory));
+    const request = validateForces(runtime.invoke(
+      studentState(s, testMode, null), { ...config }, localMemory));
     const out = P.step(s, request, config, testMode, null);
     s = out.state;
     lastError = out.error;
@@ -120,7 +129,6 @@ self.onmessage = function (event) {
     switch (msg.kind) {
       case 'load':
         stop(); userSource = String(msg.source || '');
-        userController = compile(userSource);
         mode = P.MODES.includes(msg.mode) ? msg.mode : 'step';
         config = P.sanitizeConfig(msg.config);
         speed = P.clamp(Number(msg.speed) || 1, 1, 4);
@@ -128,14 +136,14 @@ self.onmessage = function (event) {
         self.postMessage({ kind: 'ready' });
         break;
       case 'start':
-        if (!userController) throw new Error('Press Apply & Reset to load your controller.');
+        if (!userRuntime) throw new Error('Press Apply & Reset to load your controller.');
         if (state.t >= P.DURATION - 1e-8) reset();
         stop();
         timer = setInterval(playbackTick, 20);
         self.postMessage({ kind: 'running' });
         break;
       case 'pause': stop(); self.postMessage({ kind: 'paused' }); break;
-      case 'step': if (!userController) throw new Error('Load your controller first.');
+      case 'step': if (!userRuntime) throw new Error('Load your controller first.');
         stop(); playbackBudget = 0;
         if (state.t < P.DURATION - 1e-8) safeStep(); break;
       case 'reset': reset(); break;
@@ -145,7 +153,7 @@ self.onmessage = function (event) {
       case 'speed': speed = P.clamp(Number(msg.speed) || 1, 1, 4); break;
       case 'test':
         stop();
-        if (!userController) throw new Error('Load your controller first.');
+        if (!userRuntime) throw new Error('Load your controller first.');
         self.postMessage({ kind: 'test-start' });
         const results = [testCase('step', 20, 0.3), testCase('switch', 22, 0.3),
           testCase('circle', 24, 1.1), testCase('wind', 20, 0.4)];

@@ -4,32 +4,27 @@
   const $ = id => document.getElementById(id);
   // Use a separate save key so an instructor's worked PD/PID examples
   // from the same localhost origin never appear in the student edition.
-  // New key makes this version's P-controller starter visible on first launch;
+  // A fresh v1.6 key loads the new init()/controller() example on first launch;
   // earlier localStorage entries are kept separately.
-  const savedKey = 'particlelab.student.controller.v1_5_2';
-  const starterCode = `function P(){
+  const savedKey = 'particlelab.student.controller.v1_6';
+  const starterCode = `// Standard callback: once per new experiment or reset.
+function init() {
+  memory.integralX = 0;
+  memory.integralY = 0;
+}
+
+// Custom helper function: proportional forces.
+function P() {
   const Kp = 10.0;
-  
-  // Position errors
   const ex = state.target.x - state.x;
   const ey = state.target.y - state.y;
-
-  // Control forces
-  const fx = Kp * ex;
-  const fy = Kp * ey;
-  
-  return {fx, fy}
+  return { fx: Kp * ex, fy: Kp * ey };
 }
- 
-// Main controller
+
+// Standard callback: automatically called every params.dt.
 function controller() {
   const p = P();
-
-  // Access the returned forces
-  const fx = p.fx;
-  const fy = p.fy;
-
-  return { fx, fy };
+  return { fx: p.fx, fy: p.fy };
 }`;  // Safe fallback for recovering from an unresponsive student controller.
   const noControlCode = 'function controller() { return { fx: 0, fy: 0 }; }';
   const world = $('world'), worldCtx = world.getContext('2d');
@@ -71,7 +66,7 @@ function controller() {
       return false;
     }
     try {
-      worker = new Worker('./worker.js?v=1.5.2');
+      worker = new Worker('./worker.js?v=1.6');
     } catch (err) {
       displayStatus('Worker unavailable', 'error');
       message('Could not start the controller worker: ' + (err.message || err) + '. Try serving the project via python3 -m http.server 8000.', 'error');
@@ -92,7 +87,7 @@ function controller() {
         updateMetrics(); requestDraw();
       } else if (info.kind === 'ready') {
         dirty = false;
-        message('Controller loaded. Press Run, Step, or run the challenges.', 'success');
+        message('Controller initialized. Press Run, Step, or run the challenges.', 'success');
         displayStatus('Ready');
         if (pendingAction) { const action = pendingAction; pendingAction = null; send(action); }
       } else if (info.kind === 'running') displayStatus('Simulating', 'running');
