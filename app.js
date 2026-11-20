@@ -4,30 +4,31 @@
   const $ = id => document.getElementById(id);
   // Use a separate save key so an instructor's worked PD/PID examples
   // from the same localhost origin never appear in the student edition.
-  // New key keeps the v1.5 global-API starter visible on first launch;
-  // earlier localStorage entries are not erased.
-  const savedKey = 'particlelab.student.controller.v1_5';
-  const starterCode = `// Particle Control Lab v1.5 — student starter (zero force).
-// state, params, memory are available inside EVERY function below.
-// The simulator calls controller() automatically each sampling period.
+  // New key makes this version's P-controller starter visible on first launch;
+  // earlier localStorage entries are kept separately.
+  const savedKey = 'particlelab.student.controller.v1_5_2';
+  const starterCode = `function P(){
+  // Position errors
+  const ex = state.target.x - state.x;
+  const ey = state.target.y - state.y;
 
-// Example custom function — no arguments needed to read state.
-function positionErrorX() {
-  return state.target.x - state.x;
+  // Control forces
+  const fx = Kp * ex;
+  const fy = Kp * ey;
+  
+  return {fx, fy}
 }
-
+ 
+// Main controller
 function controller() {
-  const ex = positionErrorX(); // x-position error (m)
-  const dt = params.dt;        // sampling period (s)
+  const p = P();
 
-  // You manage memory yourself. For example, uncomment to store the error:
-  // memory.previousErrorX = ex;
+  // Access the returned forces
+  const fx = p.fx;
+  const fy = p.fy;
 
-  // TODO: Implement your own control algorithm using ex, dt, etc.
-  // Do not manually step the plant or assign state.x/state.vx.
-  return { fx: 0, fy: 0 };
-}`;
-  // Safe fallback for recovering from an unresponsive student controller.
+  return { fx, fy };
+}`;  // Safe fallback for recovering from an unresponsive student controller.
   const noControlCode = 'function controller() { return { fx: 0, fy: 0 }; }';
   const world = $('world'), worldCtx = world.getContext('2d');
   const chart = $('errorChart'), chartCtx = chart.getContext('2d');
@@ -68,7 +69,7 @@ function controller() {
       return false;
     }
     try {
-      worker = new Worker('./worker.js?v=1.5');
+      worker = new Worker('./worker.js?v=1.5.2');
     } catch (err) {
       displayStatus('Worker unavailable', 'error');
       message('Could not start the controller worker: ' + (err.message || err) + '. Try serving the project via python3 -m http.server 8000.', 'error');
@@ -310,7 +311,7 @@ function controller() {
     });
     $('restoreBtn').addEventListener('click',()=>{
       if($('codeEditor').value !== starterCode &&
-        !confirm('Discard your current code and restore the starter skeleton?'))return;
+        !confirm('Discard your current code and restore the P controller starter?'))return;
       $('codeEditor').value=starterCode;dirty=true;lineNumbers();persistEditor();message('Starter restored. Press Run or Apply to compile.');
     });
     $('applyBtn').addEventListener('click',()=>apply());

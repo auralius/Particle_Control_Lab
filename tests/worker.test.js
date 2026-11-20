@@ -165,7 +165,7 @@ test('v1.5 challenge tests start with fresh controller globals and memory', () =
   assert.equal(JSON.stringify(w.messages.at(-1).results),before);
 });
 
-test('v1.5 actual editor starter compiles and applies zero force', () => {
+test('v1.5.2 editor starter compiles and applies saturated P force', () => {
   const app=fs.readFileSync(path.join(root,'app.js'),'utf8');
   const match=app.match(/const starterCode = `([\s\S]*?)`;/);
   assert(match,'Student starter string must be found in app.js');
@@ -173,6 +173,6 @@ test('v1.5 actual editor starter compiles and applies zero force', () => {
   w.dispatch({kind:'load',mode:'step',config:{},source:match[1]});
   assert.equal(w.messages.at(-1).kind,'ready');
   w.dispatch({kind:'step'});
-  assert.equal(w.messages.at(-1).state.fx,0);
-  assert.equal(w.messages.at(-1).state.fy,0);
+  assert.equal(w.messages.at(-1).state.fx,14);
+  assert.equal(w.messages.at(-1).state.fy,14);
 });

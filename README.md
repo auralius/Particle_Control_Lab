@@ -1,6 +1,6 @@
-# Particle Control Lab — Student Edition (v1.5)
+# Particle Control Lab — Student Edition (v1.5.2)
 
-This is the **student-facing edition** of the Particle Control Lab. The editor opens with an unsolved controller that applies **zero force**. The instructor's worked P, PD, and PID presets are intentionally not included. All other simulator functions remain available.
+This is the **student-facing edition** of the Particle Control Lab. The editor opens with a simple **P controller** (`Kp = 10`) that students can modify. No PD or PID presets are included. All other simulator functions remain available.
 
 ## Start locally (Ubuntu / Linux)
 
@@ -12,7 +12,7 @@ python3 -m http.server 8000
 
 Then open `http://localhost:8000/`. Do **not** open `index.html` using `file://`, because Web Workers may be blocked by the browser. Stop the server using Ctrl+C.
 
-If you have tested the instructor edition on `localhost:8000`, the student edition uses a different browser localStorage key. It won't load your previous instructor controller. **v1.5 also uses a fresh student storage key** so its global-interface starter is visible after updating from v1.4; the browser's older saved text is not erased. To reset your current student code, select **Reset editor to starter**. If cached files are shown, use **Ctrl+Shift+R**.
+If you have tested the instructor edition on `localhost:8000`, the student edition uses a different browser localStorage key. It won't load your previous instructor controller. **v1.5.2 uses a fresh student storage key** so the updated P starter appears even if earlier student versions saved controller code in this browser; previous saved code is not erased. To reset your current student code, select **Reset editor to starter**. If cached files are shown, use **Ctrl+Shift+R**.
 
 ## The plant
 
@@ -27,7 +27,33 @@ The simulator calls `controller()` **automatically at each sample** and integrat
 
 **New in v1.5:** `state`, `params`, and `memory` are **script-level bindings visible in all student-defined functions** (not just `controller`). The simulator refreshes their references before each controller call. You do **not** declare them, pass them to helpers, or manually step the controller. For compatibility, the old `controller(state, params, memory)` function signature continues to work.
 
+## Default editor code (v1.5.2)
+
+```js
+function Kp(){
+}
+// Proportional controller
+function controller() {
+  const Kp = 10;
+
+  // Position errors
+  const ex = state.target.x - state.x;
+  const ey = state.target.y - state.y;
+
+  // Control forces
+  const fx = Kp * ex;
+  const fy = Kp * ey;
+
+  return { fx, fy };
+}
+```
+
+**Important JavaScript detail:** `function Kp(){}` is currently an unused placeholder. Inside `controller()`, the local `const Kp = 10` is the gain used for the force calculations. If you want the helper function to supply the gain, implement `function Kp() { return 10; }` and change the local declaration to `const kp = Kp();`, using `kp` in the force calculations.
+
 ## Controller API
+
+**Start with the always-visible “Controller API reference” beneath the editor.** It lists all `state` fields (and units), `params.m`, `params.b`, `params.fmax`, the selected `params.dt`, and `memory` persistence/reset behavior. The editor toolbar has an **API reference ↓** jump link, so this table is easy to find on smaller screens. It also explains the required `{ fx, fy }` return value. The API itself has not changed since v1.5.
+
 
 ### Custom helpers with globally accessible context
 
@@ -85,10 +111,10 @@ memory.calls = (memory.calls || 0) + 1;
 ### Return control force (N)
 
 ```js
-return { fx: 0, fy: 0 }; // starter: no control
+return { fx: 10 * (state.target.x - state.x), fy: 10 * (state.target.y - state.y) }; // default P example
 ```
 
-Keep the zeros until your control law is ready, then replace them. Forces are saturated independently to `[-params.fmax, +params.fmax]` by the simulator.
+The default P controller uses gain 10; replace that law when trying other controllers. Forces are saturated independently to `[-params.fmax, +params.fmax]` by the simulator.
 
 ## How the particle is discretized (as implemented)
 

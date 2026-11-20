@@ -3,7 +3,7 @@
 .sample-note p{margin:0;color:#a4bad0;font-size:12px;line-height:1.45;padding:8px 0}
 @media(max-width:1130px){.shell{width:min(100% - 30px,1000px)}.main-grid,.secondary-grid{grid-template-columns:1fr}.editor-area{height:350px}.stage-wrap{aspect-ratio:3/1.8}.test-grid{grid-template-columns:repeat(2,1fr)}}@media(max-width:590px){.shell{width:calc(100% - 20px)}.site-header{height:71px}.header-tag{display:none}.intro{padding:24px 4px}.intro h1{font-size:32px}.panel-head{padding:17px}.panel-head h2{font-size:17px}.stage-wrap{margin:0 8px;aspect-ratio:1.2}.stage-corner.top-right{top:34px;left:14px;right:auto}.transport{padding:12px 8px}.primary-btn,.soft-btn{padding:8px 10px}.speed-box{margin-left:0}.metric-grid{grid-template-columns:1fr 1fr}.metric{padding:12px 15px}.metric strong{font-size:22px}.settings-grid{grid-template-columns:1fr 1fr;gap:12px}.test-grid{grid-template-columns:1fr 1fr;gap:8px;padding:0 12px 15px}.panel-head{flex-wrap:wrap}.equation{font-size:16px;padding:14px 5px}.editor-area{margin:0 8px}.editor-toolbar{padding:0 8px 11px}.editor-toolbar label{gap:5px}.editor-toolbar select{max-width:160px}.config-footer{margin:16px 10px 0}.settings-grid{padding:0 10px}footer{font-size:10px}}
 
-/* Student edition: one unsolved starter instead of worked controller presets. */
+/* Student edition: one P controller starter and no controller preset gallery. */
 .student-edition-label{font-size:10px;letter-spacing:.09em;color:#9ab1c8;font-weight:750}
 
 /* v1.3: always-visible controller API and exact plant discretization. */
@@ -33,3 +33,14 @@
 .discrete-guide strong{color:#d4ecf1}
 .discrete-guide pre{margin:12px 0;background:#081729;border:1px solid #2b4056;border-radius:7px;padding:12px;overflow-x:auto;color:#85edd3;font:11px/1.7 ui-monospace,SFMono-Regular,Consolas,monospace}
 @media(max-width:590px){.api-guide{padding:14px 12px}.api-rows>div{grid-template-columns:minmax(0,50%) minmax(0,50%)}.discrete-guide{margin:0 12px}}
+
+/* v1.5.1: help beginning students find the complete reference at a glance. */
+.editor-toolbar-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap}
+.api-jump{color:#92f4d9;background:#163a39;border:1px solid #306a62;text-decoration:none;font-size:11px;font-weight:750;padding:7px 11px;border-radius:6px;white-space:nowrap}
+.api-jump:hover,.api-jump:focus-visible{background:#1c514b;outline-color:#92f4d9}
+.api-guide{scroll-margin-top:18px}
+.api-heading h3{font-size:14px}
+.api-intro{font-size:11px;line-height:1.5;color:#bbcfdf;margin:0 0 9px}
+.api-intro code,.api-compat code{color:#83edd0;font-family:ui-monospace,SFMono-Regular,Consolas,monospace}
+.api-compat{font-size:11px;line-height:1.55;color:#91afc3;margin:12px 0 0}
+@media(max-width:520px){.editor-toolbar{align-items:start;gap:10px;flex-wrap:wrap}.editor-toolbar-actions{justify-content:flex-start}}
