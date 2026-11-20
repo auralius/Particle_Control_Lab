@@ -1,4 +1,6 @@
-# Particle Control Lab — Student Edition (v1.5)
+# Particle Control Lab 
+
+URL: https://auralius.github.io/Particle_Control_Lab/
 
 This is the **student-facing edition** of the Particle Control Lab. The editor opens with an unsolved controller that applies **zero force**. The instructor's worked P, PD, and PID presets are intentionally not included. All other simulator functions remain available.
 
