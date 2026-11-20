@@ -8,6 +8,8 @@
   // earlier localStorage entries are kept separately.
   const savedKey = 'particlelab.student.controller.v1_5_2';
   const starterCode = `function P(){
+  const Kp = 10.0;
+  
   // Position errors
   const ex = state.target.x - state.x;
   const ey = state.target.y - state.y;
