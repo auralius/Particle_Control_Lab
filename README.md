@@ -57,15 +57,14 @@ function controller() {
 
 The proportional controller is a working example. The integral variables are initialized in `init()` but not used by `P()`: students can use them later when implementing an integral controller. Custom helpers can be named freely and invoked from either callback.
 
-## Standard callbacks and lifecycle (new in v1.6)
+## Standard callbacks
 
 | Callback | Required? | Frequency | Responsibility |
 | --- | --- | --- | --- |
 | `init()` | No | Once for each fresh experiment | Initialize `memory` and any other controller-owned values |
 | `controller()` | **Yes** | Once per `params.dt` simulation step | Update internal controller state, compute force, return `{ fx, fy }` |
-| `P()`, `I()`, `D()`, other helpers | No | Whenever student code calls them | Organize custom control algorithms |
 
-The simulator provides global `state`, `params`, and `memory` to **both callbacks and every custom helper function**. For compatibility, `controller(state, params, memory)` still works; `init(state, params, memory)` also accepts those optional arguments.
+The simulator provides global `state`, `params`, and `memory` to **both callbacks and every custom helper function**. 
 
 **When does `init()` run?**
 
@@ -118,7 +117,7 @@ function controller() {
 
 There is no need to call `controller()` or advance the simulator yourself. The worker calls optional `init()` once on a fresh experiment, then calls `controller()` once per `params.dt`, applies its returned force and updates the **physical state** automatically. `memory` persists between calls but the simulator never updates its properties for you: use it to store previous errors, integral terms, observer estimates, optimization warm starts, etc. All custom helper functions share the same current context. Each challenge starts with fresh memory.
 
-The three names `state`, `params`, and `memory` are **reserved at the top level** of your student code. Do not write `let state`, `const params`, etc. You can still use these names as arguments in the legacy `controller(state, params, memory)`, where they shadow the bindings inside that function. The simulator provides snapshots of state and parameters; changing their properties does not change the physical plant or experiment settings.
+The three names `state`, `params`, and `memory` are **reserved at the top level** of your student code. Do not write `let state`, `const params`, etc. The simulator provides snapshots of state and parameters; changing their properties does not change the physical plant or experiment settings.
 
 
 ### Read-only state (position in m; velocity in m/s)
