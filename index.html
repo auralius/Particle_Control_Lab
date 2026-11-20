@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Interactive second-order particle control playground for students: code a JavaScript controller and watch the physics respond.">
+  <title>Particle Control Lab · Student Playground</title>
+  <link rel="stylesheet" href="styles.css?v=1.5">
+  <script defer src="app.js?v=1.5"></script>
+</head>
+<body>
+<div class="shell">
+  <header class="site-header">
+    <div class="brand"><span class="brand-mark" aria-hidden="true">◉</span><div><strong>PARTICLE<span>LAB</span></strong><small>CONTROL SYSTEMS · LIVE PLAYGROUND</small></div></div>
+    <div class="header-right"><span class="header-tag">STUDENT EDITION · 2D · v1.5</span><span class="live-indicator" id="statusLabel"><i></i> Ready</span></div>
+  </header>
+  <section class="intro">
+    <div class="eyebrow">VIRTUAL CONTROL LABORATORY <span class="inline-line"></span> JAVASCRIPT</div>
+    <h1>Write the controller.<br><em>Control the motion.</em></h1>
+    <p>One particle. Real second-order dynamics. Your JavaScript calculates the forces; the simulator handles the physics.</p>
+  </section>
+  <main>
+    <div class="main-grid">
+      <section class="panel simulation-panel" aria-labelledby="simHeading">
+        <div class="panel-head"><div><span class="section-kicker">01 / EXPERIMENT</span><h2 id="simHeading">Motion workspace</h2></div><span class="mini-pill">TOP VIEW · METERS</span></div>
+        <div class="stage-wrap">
+          <canvas id="world" width="900" height="600" aria-label="Particle position and trajectory on a two-dimensional coordinate grid"></canvas>
+          <div class="stage-corner top-left">X <span class="axis-arrow">→</span> &nbsp; Y <span class="axis-arrow">↑</span></div>
+          <div class="stage-corner top-right"><span class="target-dot"></span> TARGET &nbsp;&nbsp; <span class="particle-dot"></span> PARTICLE</div>
+          <div class="stage-corner bottom-left" id="stageHint">Click anywhere to move the target</div>
+          <div class="stage-corner bottom-right" id="stageTime">t = 0.00 s</div>
+        </div>
+        <div class="transport" aria-label="Simulation controls">
+          <button id="runBtn" class="primary-btn">▶ <span>Run simulation</span></button>
+          <button id="pauseBtn" class="soft-btn">Ⅱ Pause</button>
+          <button id="stepBtn" class="soft-btn">↷ Step +<span id="stepSizeLabel">20 ms</span></button>
+          <button id="resetBtn" class="soft-btn">↺ Reset</button>
+          <label class="speed-box" for="speedSelect">SPEED
+            <select id="speedSelect"><option value="1">1×</option><option value="2">2×</option><option value="4">4×</option></select>
+          </label>
+        </div>
+        <div class="metric-grid" aria-live="polite">
+          <div class="metric"><span>TRACKING ERROR</span><strong id="metricError">—</strong><small>m · instantaneous</small></div>
+          <div class="metric"><span>RMS ERROR</span><strong id="metricRms">—</strong><small>m · after 2 s</small></div>
+          <div class="metric"><span>CONTROL EFFORT</span><strong id="metricForce">—</strong><small>N · applied magnitude</small></div>
+          <div class="metric"><span>VELOCITY</span><strong id="metricVelocity">—</strong><small>m/s · magnitude</small></div>
+        </div>
+      </section>
+      <section class="panel editor-panel" aria-labelledby="codeHeading">
+        <div class="panel-head"><div><span class="section-kicker">02 / YOUR ALGORITHM</span><h2 id="codeHeading">Controller editor</h2></div><span class="mini-pill editor-tag">JAVASCRIPT</span></div>
+        <div class="editor-toolbar">
+          <span class="student-edition-label">GLOBAL API · ZERO FORCE STARTER</span>
+          <button id="restoreBtn" class="text-btn" title="Restore the empty starter controller">Reset editor to starter</button>
+        </div>
+        <div class="editor-area"><div class="gutter" id="lineNumbers" aria-hidden="true"></div><textarea id="codeEditor" aria-label="Edit your JavaScript controller function" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off"></textarea></div>
+        <div class="editor-action"><button id="applyBtn" class="primary-btn">↻ <span>Apply & reset</span></button><button id="saveBtn" class="soft-btn">↓ Save .js</button></div>
+        <p class="editor-helper" id="message" role="status">Write controller(). state, params, and memory are available in every function. Then press Apply &amp; reset.</p>
+        <section class="api-guide" aria-labelledby="apiHeading">
+          <div class="api-heading"><h3 id="apiHeading">Controller API reference</h3><span>Global within student code · refreshed each step</span></div>
+          <p class="api-return">Write <code>function controller()</code> and any number of helper functions. Use <code>state</code>, <code>params</code>, and <code>memory</code> directly in <strong>any</strong> function. Do not declare these three names at the top level. The simulator calls <code>controller()</code> automatically; the previous <code>controller(state, params, memory)</code> signature also works.</p>
+          <div class="api-content">
+            <div class="api-group">
+              <h4><code>state</code> <small>read only · current particle and target</small></h4>
+              <dl class="api-rows">
+                <div><dt><code>state.x</code>, <code>state.y</code></dt><dd>Particle position (m)</dd></div>
+                <div><dt><code>state.vx</code>, <code>state.vy</code></dt><dd>Particle velocity (m/s)</dd></div>
+                <div><dt><code>state.t</code></dt><dd>Simulation time (s)</dd></div>
+                <div><dt><code>state.target.x</code>, <code>.y</code></dt><dd>Target position (m)</dd></div>
+                <div><dt><code>state.target.vx</code>, <code>.vy</code></dt><dd>Target velocity (m/s)</dd></div>
+                <div><dt><code>state.target.ax</code>, <code>.ay</code></dt><dd>Target acceleration (m/s²)</dd></div>
+              </dl>
+            </div>
+            <div class="api-group">
+              <h4><code>params</code> <small>read only · physics and sampling</small></h4>
+              <dl class="api-rows">
+                <div><dt><code>params.m</code></dt><dd>Mass (kg)</dd></div>
+                <div><dt><code>params.b</code></dt><dd>Viscous damping (N·s/m)</dd></div>
+                <div><dt><code>params.fmax</code></dt><dd>Force limit per axis (N)</dd></div>
+                <div class="api-highlight"><dt><code>params.dt</code></dt><dd>Selected sample period = <strong id="apiDtLabel">0.020 s (50 Hz)</strong></dd></div>
+              </dl>
+            </div>
+            <div class="api-group">
+              <h4><code>memory</code> <small>read / write · your stored variables</small></h4>
+              <p>Starts as <code>{}</code>, survives between controller calls, and is cleared by <strong>Reset</strong> or <strong>Apply &amp; reset</strong>. Each test starts with empty memory. <strong>Only your JavaScript updates memory:</strong> the simulator stores it but never computes controller history or observer states for you.</p>
+              <div class="api-example"><span>Example: accumulate a value using the sample time</span><pre><code>memory.sum = (memory.sum || 0)
+  + (state.target.x - state.x) * params.dt;</code></pre></div>
+            </div>
+            <div class="api-example"><span>Helper function reading globals (no arguments)</span><pre><code>function errorX() {
+  return state.target.x - state.x;
+}</code></pre></div>
+            <p class="api-return">Your function must return <code>{ fx, fy }</code> in newtons. The simulator clips each force to <code>[-params.fmax, +params.fmax]</code> and then advances the plant.</p>
+          </div>
+        </section>
+      </section>
+    </div>
+    <div class="secondary-grid">
+      <section class="panel settings-panel"><div class="panel-head compact"><div><span class="section-kicker">03 / THE PLANT</span><h2>Experiment setup</h2></div></div>
+        <div class="equation">m<span>ẍ</span> + b<span>ẋ</span> = F<sub>x</sub> &nbsp; · &nbsp; m<span>ÿ</span> + b<span>ẏ</span> = F<sub>y</sub></div>
+        <p class="formula-note">In the wind test, external forces are added to the right-hand side.</p>
+        <div class="settings-grid">
+          <label class="field"><span>SCENARIO</span><select id="modeSelect"><option value="step">Position / setpoint</option><option value="switch">Setpoint reversal at 8 s</option><option value="circle">Moving / elliptical target</option><option value="wind">Disturbance at 7 s</option></select></label>
+          <label class="field"><span>MASS · m (kg)</span><input id="massInput" type="number" min="0.2" max="10" step="0.1" value="1"></label>
+          <label class="field"><span>DAMPING · b (N·s/m)</span><input id="dampingInput" type="number" min="0" max="8" step="0.1" value="0.7"></label>
+          <label class="field"><span>MAX FORCE · |F<sub>x,y</sub>| (N)</span><input id="forceInput" type="number" min="1" max="50" step="1" value="14"></label>
+          <label class="field"><span>SAMPLING PERIOD · T<sub>s</sub></span><select id="dtSelect">
+            <option value="0.005">0.005 s · 200 Hz</option>
+            <option value="0.01">0.010 s · 100 Hz</option>
+            <option value="0.02" selected>0.020 s · 50 Hz (default)</option>
+            <option value="0.05">0.050 s · 20 Hz</option>
+            <option value="0.1">0.100 s · 10 Hz</option>
+          </select></label>
+          <div class="field sample-note"><span>DISCRETE-TIME EXPERIMENT</span><p>Changing T<sub>s</sub> resets the run and controller memory. Playback SPEED affects wall-clock pace only.</p></div>
+        </div>
+        <div class="config-footer"><span id="configDtLabel">T<sub>s</sub> = 0.020 s (50 Hz) · 30 s max</span><button id="shareBtn" class="text-btn">Copy setup link ↗</button></div>
+        <section class="discrete-guide" aria-labelledby="discreteHeading">
+          <h3 id="discreteHeading">How we discretize the plant</h3>
+          <p>The controller runs once per selected sampling period <strong>Δt = <code>params.dt</code> = <span id="equationDtLabel">0.020 s</span></strong>. Its force stays constant during that step. For the <em>x</em> axis:</p>
+          <pre><code>ax      = (fx - b * vx + disturbanceX) / m;
+vxNext  = vx + ax * dt;
+xNext   = x + vxNext * dt;</code></pre>
+          <p>The <em>y</em> axis is updated identically (<code>fy</code>, <code>vy</code>, <code>y</code>). Then <code>tNext = t + dt</code>.</p>
+          <p>This is <strong>semi-implicit Euler</strong> (also called symplectic Euler): update <em>velocity first</em>, then use the new velocity for position. It approximates the continuous plant <code>m·ẍ + b·ẋ = fx + disturbanceX</code>, not an exact zero-order-hold discretization.</p>
+        </section>
+      </section>
+      <section class="panel plots-panel"><div class="panel-head compact"><div><span class="section-kicker">04 / MEASURE RESPONSE</span><h2>Tracking error over time</h2></div><span class="mini-pill">|TARGET − POSITION|</span></div>
+        <div class="chart-wrap"><canvas id="errorChart" width="800" height="300" aria-label="Chart of Euclidean tracking error versus simulated time"></canvas></div>
+        <div class="chart-legend"><span><i></i> Tracking error · m</span><span id="chartInfo">0 of 30 s</span></div>
+        <div class="data-actions"><button class="soft-btn" id="csvBtn">↓ Export CSV</button><span>Export t, x, y, target, velocity, force, error</span></div>
+      </section>
+    </div>
+    <section class="panel test-panel" aria-labelledby="testHeading">
+      <div class="panel-head"><div><span class="section-kicker">05 / CHALLENGE MODE</span><h2 id="testHeading">Evaluate your controller</h2><p class="subtitle">Run the same controller through four scenarios with fresh state each time. Simple thresholds are learning targets, not grades.</p></div><button id="testBtn" class="outlined-btn">⚡ Run 4 tests</button></div>
+      <div id="testResults" class="test-grid"><div class="empty-tests">No tests yet. Write or load a controller, apply it, then run the challenges.</div></div>
+    </section>
+    <footer><strong>PARTICLELAB</strong> <span>Static HTML · CSS · JavaScript · No dependencies · GitHub Pages ready</span><span>Built for control systems education</span></footer>
+  </main>
+</div>
+</body>
+</html>
