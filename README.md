@@ -1,8 +1,8 @@
-# Particle Control Lab 
+# Particle Control Lab — Student Edition (v1.5.2)
 
 URL: https://auralius.github.io/Particle_Control_Lab/
 
-This is the **student-facing edition** of the Particle Control Lab. The editor opens with an unsolved controller that applies **zero force**. The instructor's worked P, PD, and PID presets are intentionally not included. All other simulator functions remain available.
+This is the **student-facing edition** of the Particle Control Lab. The editor opens with a **simple proportional (P) controller** as a working example. Students can change or replace it with their own controller functions. Worked PD and PID presets are intentionally not included. All other simulator functions remain available.
 
 ## Start locally (Ubuntu / Linux)
 
@@ -14,7 +14,7 @@ python3 -m http.server 8000
 
 Then open `http://localhost:8000/`. Do **not** open `index.html` using `file://`, because Web Workers may be blocked by the browser. Stop the server using Ctrl+C.
 
-If you have tested the instructor edition on `localhost:8000`, the student edition uses a different browser localStorage key. It won't load your previous instructor controller. **v1.5 also uses a fresh student storage key** so its global-interface starter is visible after updating from v1.4; the browser's older saved text is not erased. To reset your current student code, select **Reset editor to starter**. If cached files are shown, use **Ctrl+Shift+R**.
+If you have tested the instructor edition on `localhost:8000`, the student edition uses a different browser localStorage key. It won't load your previous instructor controller. The current v1.5.2 release uses the browser storage key `particlelab.student.controller.v1_5_2` so its starter can appear on a fresh visit; older saved text is not erased. To reset your current student code, select **Reset editor to starter**. If cached files are shown, use **Ctrl+Shift+R**.
 
 ## The plant
 
@@ -31,6 +31,9 @@ The simulator calls `controller()` **automatically at each sample** and integrat
 
 ## Controller API
 
+**Start with the always-visible “Controller API reference” beneath the editor.** It lists all `state` fields (and units), `params.m`, `params.b`, `params.fmax`, the selected `params.dt`, and `memory` persistence/reset behavior. The editor toolbar has an **API reference ↓** jump link, so this table is easy to find on smaller screens. It also explains the required `{ fx, fy }` return value. The API itself has not changed since v1.5.
+
+
 ### Custom helpers with globally accessible context
 
 ```js
@@ -46,10 +49,14 @@ function rememberPrediction(acceleration) {
 function controller() {
   const predictedAcceleration = modelAcceleration(0);
   rememberPrediction(predictedAcceleration); // student-managed memory
-  // TODO: design a control law that calculates fx and fy.
+  // Illustrative zero-force return, not the default v1.5.2 starter.
   return { fx: 0, fy: 0 };
 }
 ```
+
+The example above demonstrates helper-function access; the actual starter contains a P controller.
+
+For modular control, students can create `P()`, `I()`, `D()`, model, observer, or other helper functions. A helper can return an object such as `{ fx, fy }`; the main `controller()` combines the required outputs and returns the final forces. Each function may read `state`, `params`, and `memory` directly. The student is responsible for updating any saved controller history.
 
 There is no need to call `controller()` or advance the simulator yourself. The worker calls the function once per `params.dt`, then applies the returned force and updates the **physical state** automatically. `memory` persists between calls but the simulator never updates its properties for you: use it to store previous errors, integral terms, observer estimates, optimization warm starts, etc. All custom helper functions share the same current context. Each challenge starts with fresh memory.
 
@@ -78,19 +85,26 @@ params.fmax  // allowed absolute force per axis, N
 
 ### Memory persists across controller calls
 
-`memory` starts as `{}` and is cleared whenever the experiment resets. **Students must explicitly update it.** For example:
+`memory` starts as `{}` and is cleared whenever the experiment resets. **Students must explicitly initialize and update it.** An unassigned property is `undefined`, not `0`.
 
 ```js
-memory.calls = (memory.calls || 0) + 1;
+if (memory.previousErrorX === undefined) {
+  memory.previousErrorX = 0;
+}
+
+memory.calls ??= 0;  // Initialize only if undefined or null.
+memory.calls += 1;   // Update the stored value.
 ```
+
+Avoid resetting an integrator or other internal state to zero on every controller call. `memory` persists across sampling instants, but it is reset when the experiment is reset or when a challenge begins. Use `params.dt` for discrete-time integrators and differences.
 
 ### Return control force (N)
 
 ```js
-return { fx: 0, fy: 0 }; // starter: no control
+return { fx, fy };  // Forces in newtons, computed by student code.
 ```
 
-Keep the zeros until your control law is ready, then replace them. Forces are saturated independently to `[-params.fmax, +params.fmax]` by the simulator.
+Returning `{ fx: 0, fy: 0 }` is also valid if you want to test without control. In v1.5.2 the default starter already computes proportional forces. Forces are saturated independently to `[-params.fmax, +params.fmax]` by the simulator.
 
 ## How the particle is discretized (as implemented)
 
@@ -141,7 +155,7 @@ This is a **numerical approximation**, not the exact zero-order-hold discretizat
 3. **Moving target:** follow the elliptical reference.
 4. **Disturbance rejection:** test what happens when an unknown force appears at 7 s.
 
-Click **Run simulation**, **Step +[selected Ts]**, or **Run 4 tests**. Use **Save .js** to submit your code and **Export CSV** to analyze tracking error, overshoot, and settling. The editor autosaves to the current browser only; it does not submit code to GitHub.
+Click **Run simulation**, **Step +[selected Ts]**, or **Run 4 tests**. Use **Save .js** to submit your code and **Export CSV** to analyze tracking error, overshoot, and settling. The editor autosaves to the current browser only; it does not submit code to GitHub. The starter code itself is defined by `starterCode` near the top of `app.js`; existing browser-saved code takes precedence until **Reset editor to starter** is clicked.
 
 You can share an instructor-defined experiment by adding URL parameters, e.g. `?task=wind&m=2&b=0.5&fmax=10&dt=0.05`.
 
