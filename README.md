@@ -1,5 +1,9 @@
 # Particle Control Lab (v1.6)
 
+__URL: https://auralius.github.io/Particle_Control_Lab/__
+
+---
+
 This is the **student-facing edition** of the Particle Control Lab. The editor opens with a simple **P controller** (`Kp = 10`) that students can modify. No PD or PID presets are included. All other simulator functions remain available.
 
 ## Start locally (Ubuntu / Linux)
